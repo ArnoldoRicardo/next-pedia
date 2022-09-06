@@ -1,11 +1,15 @@
-import { getPlant, getPlantList } from '@api'
+import { GetStaticProps, InferGetStaticPropsType, GetStaticPaths } from 'next'
+import Link from 'next/link'
+
+import { getPlant, getPlantList, getCategoryList } from '@api'
 
 import { Layout } from '@components/Layout'
 import { AuthorCard } from '@components/AuthorCard'
 import { RichText } from '@components/RichText'
+import { PlantEntryInline } from '@components/PlantCollection'
+
 import { Grid } from '@ui/Grid'
 import { Typography } from '@ui/Typography'
-import { GetStaticProps, InferGetStaticPropsType } from 'next'
 
 type PathType = {
   params: {
@@ -13,7 +17,7 @@ type PathType = {
   }
 }
 
-export const getStaticPaths = async () => {
+export const getStaticPaths: GetStaticPaths = async () => {
   const entries = await getPlantList({ limit: 10 })
 
   const paths: PathType[] = entries.map((plant) => ({
@@ -24,15 +28,17 @@ export const getStaticPaths = async () => {
 
   return {
     paths,
-    fallback: false,
+    fallback: 'blocking',
   }
 }
 
-type PlantEntryProps = {
+type PlantEntryPageProps = {
   plant: Plant
+  otherEntries: Plant[]
+  categories: Category[]
 }
 
-export const getStaticProps: GetStaticProps<PlantEntryProps> = async ({
+export const getStaticProps: GetStaticProps<PlantEntryPageProps> = async ({
   params,
 }) => {
   const slug = params?.slug
@@ -43,10 +49,15 @@ export const getStaticProps: GetStaticProps<PlantEntryProps> = async ({
 
   try {
     const plant = await getPlant(slug)
+    const otherEntries = await getPlantList({ limit: 5 })
+    const categories = await getCategoryList({ limit: 10 })
     return {
       props: {
         plant,
+        otherEntries,
+        categories,
       },
+      revalidate: 5 * 60,
     }
   } catch (e) {
     return { notFound: true }
@@ -55,6 +66,8 @@ export const getStaticProps: GetStaticProps<PlantEntryProps> = async ({
 
 const PlantEntryPage = ({
   plant,
+  otherEntries,
+  categories,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
   return (
     <Layout>
@@ -75,11 +88,27 @@ const PlantEntryPage = ({
             <Typography variant="h5" component="h3" className="mb-4">
               Recent Posts
             </Typography>
+            {otherEntries.map((plantEntry) => (
+              <article className="mb-4" key={plantEntry.id}>
+                <PlantEntryInline {...plantEntry} />
+              </article>
+            ))}
           </section>
           <section className="mt-10">
             <Typography variant="h5" component="h3" className="mb-4">
               Categories
             </Typography>
+            <ul className="list">
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <Link passHref href={`/category/${category.slug}`}>
+                    <Typography component="a" variant="h6">
+                      {category.title}
+                    </Typography>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </section>
         </Grid>
       </Grid>
