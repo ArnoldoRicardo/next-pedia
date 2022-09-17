@@ -4,11 +4,13 @@ import { Hero } from '@components/Hero'
 import { Authors } from '@components/Authors'
 import { getPlantList } from '@api'
 import { GetStaticProps, InferGetStaticPropsType } from 'next'
+import Link from 'next/link'
 
 type HomeProps = { plants: Plant[] }
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
   const plants = await getPlantList({ limit: 11 })
+
   return {
     props: {
       plants,
@@ -30,6 +32,7 @@ export default function Home({
         className="mb-24"
       />
       <PlantCollection plants={plants} variant="square" />
+      <Link href="/test">Test</Link>
     </Layout>
   )
 }
